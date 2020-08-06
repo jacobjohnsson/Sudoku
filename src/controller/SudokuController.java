@@ -25,6 +25,9 @@ import java.awt.FlowLayout;
 public class SudokuController {
 	
 	private JTextField[][] textGrid;
+	SudokuModel model = new SudokuModel();
+	
+	private int SIMULATION_SLOWDOWN = 20;
 	
 	public SudokuController() {
 		SwingUtilities.invokeLater(() -> createWindow());
@@ -38,28 +41,44 @@ public class SudokuController {
 		
 		JButton clearButton = new JButton("Clear");
 		JButton solveButton = new JButton("Solve");	
+		JTextField slowdownField = new JTextField("SlowDown (0 - 1000)");
+		JButton slowdownButton = new JButton("Set");
 		
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		buttonPanel.add(clearButton);
 		buttonPanel.add(solveButton);
+		buttonPanel.add(slowdownField);
+		buttonPanel.add(slowdownButton);
 		pane.add(buttonPanel, BorderLayout.PAGE_END);
 		
 		clearButton.addActionListener(event -> clear());
-		solveButton.addActionListener(event -> new Thread (() -> solve()).start());
+		solveButton.addActionListener(event -> {
+			clearButton.setEnabled(false);
+			slowdownButton.setEnabled(false);
+			solveButton.setEnabled(false);
+			new Thread (() -> {
+				solve(); 
+				clearButton.setEnabled(true);
+				slowdownButton.setEnabled(true);
+				solveButton.setEnabled(true);
+			}).start();
+		});
+		slowdownButton.addActionListener(event -> SIMULATION_SLOWDOWN = Integer.parseInt(slowdownField.getText())); 
 		
-		JPanel grid = new JPanel(new GridLayout(9,9,5,5));
+		JPanel jGrid = new JPanel(new GridLayout(9,9,5,5));
 		
 		for (int row = 0; row < 9; row++) {
 			for (int col = 0; col < 9; col++) {
-				JTextField textField = new JLimitedTextField(1);
+				JLimitedTextField textField = new JLimitedTextField(1);
 				textField.setPreferredSize(new Dimension(30, 30));
 				textField.setBackground(getColor(row, col));
 				textGrid[row][col] = textField;
-				grid.add(textField);
+				jGrid.add(textField);
+				model.subscribe(row,  col, textField);
 			}
 		}
 		
-		pane.add(grid);
+		pane.add(jGrid);
 		
 		frame.pack();
 		frame.setVisible(true);
@@ -76,26 +95,21 @@ public class SudokuController {
 	
 	private void solve() {
 		boolean[][] preGen = new boolean[9][9];
-		SudokuModel matrix = new SudokuModel();
 		
 		for (int row = 0; row < 9; row++) {
 			for (int col = 0; col < 9; col++) {
 				if (textGrid[row][col].getText().equals("")) {
-					matrix.put(row, col, 0);
+					model.put(row, col, 0);
 				} else {
-					matrix.put(row, col, Integer.parseInt(textGrid[row][col].getText()));
+					model.put(row, col, Integer.parseInt(textGrid[row][col].getText()));
 					preGen[row][col] = true;
 				}
 			}
 		}
 		
-		Solver solver = new Solver(matrix, preGen);
+		Solver solver = new Solver(model, preGen, SIMULATION_SLOWDOWN);
 		ExecutorService executor = Executors.newSingleThreadExecutor();
 		Future<Boolean> future = executor.submit(() -> solver.solve());
-		
-		while(!future.isDone()) {
-			updateGrid(matrix);
-		}
 		
 		boolean solvable = false;
 		try {
@@ -107,7 +121,7 @@ public class SudokuController {
 		if (!solvable) {
 			JOptionPane.showMessageDialog(null, "Cannot solve sudoku.", "Error", JOptionPane.ERROR_MESSAGE); 
 		}
-		updateGrid(matrix);
+		updateGrid(model);
 
 	}
 

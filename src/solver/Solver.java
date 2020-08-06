@@ -4,10 +4,16 @@ public class Solver {
 	
 	SudokuModel grid;
 	private boolean[][] preGen;
+	private int speed;
 	
 	public Solver(SudokuModel grid, boolean[][] preGen) {
+		this(grid, preGen, 0);
+	}
+	
+	public Solver(SudokuModel grid, boolean[][] preGen, int speed) {
 		this.grid = grid;
 		this.preGen = preGen;
+		this.speed = speed;
 	}
 	
 	public boolean solve() {
@@ -19,7 +25,7 @@ public class Solver {
 	
 	private boolean solveHelper(int row, int col) {
 		try {
-			Thread.sleep(100);
+			Thread.sleep(speed);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

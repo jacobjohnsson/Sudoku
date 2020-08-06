@@ -1,12 +1,15 @@
 package controller;
 
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.PlainDocument;
 
-public class JLimitedTextField extends JTextField {
+import solver.MyObserver;
+
+public class JLimitedTextField extends JTextField implements MyObserver {
 	
 	private int limit;
 
@@ -15,6 +18,11 @@ public class JLimitedTextField extends JTextField {
 		this.limit = limit;
 	}
 
+	// Callback from Cell when the cell is updated.
+	public void update(int value) {
+		SwingUtilities.invokeLater(() -> setText(String.valueOf(value)));
+	}
+	
 	@Override
 	protected Document createDefaultModel() {
 		return new LimitedDocument();	
